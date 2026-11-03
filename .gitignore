@@ -1,0 +1,6 @@
+builder/data/
+builder/reports/
+builder/engine/
+store/
+_site/
+__pycache__/

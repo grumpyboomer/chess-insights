@@ -1,0 +1,83 @@
+name: Update Chess Insights
+
+on:
+  schedule:
+    - cron: '17 */3 * * *'   # every 3 hours
+  workflow_dispatch:          # the "Run workflow" button
+    inputs:
+      force:
+        description: 'Rebuild the site even if there are no new games'
+        type: boolean
+        default: false
+  push:                       # code changes (classification rules, site) rebuild right away
+    branches: [main]
+    paths: ['builder/**', 'ci/**', '.github/workflows/update.yml']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Asia/Riyadh
+      CHESSCOM: abdh2005
+      LICHESS: abdulrahmanhendawy20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get saved analysis (data branch, or the seed on the very first run)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null; then
+            git clone -q --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" store
+          else
+            mkdir -p store && cp seed/* store/ && git -C store init -q -b data
+          fi
+
+      - name: Cache Stockfish
+        uses: actions/cache@v4
+        with:
+          path: builder/engine
+          key: stockfish-${{ runner.os }}-v1
+
+      - name: Fetch new games, analyse them, build
+        id: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FORCE: ${{ github.event_name == 'push' || inputs.force == true }}
+        run: python3 ci/run.py
+
+      - name: Save analysis to the data branch
+        working-directory: store
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "chess-insights-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git rev-parse -q --verify HEAD >/dev/null; then
+            if git diff --cached --quiet; then echo "Nothing new to save"; exit 0; fi
+            git commit -q --amend -m "Saved analysis $(date '+%Y-%m-%d %H:%M')"   # one commit only, so the repo stays small
+          else
+            git commit -q -m "Saved analysis $(date '+%Y-%m-%d %H:%M')"
+          fi
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:data
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

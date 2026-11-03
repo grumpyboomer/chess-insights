@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess Insights Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap">
+<style>
+:root { --bg:#262421; --panel:#302e2b; --panel-2:#3a3733; --line:#3d3b37; --fg:#ffffff; --muted:#a9a7a2; --accent:#81b64c; --on:#17200c; --ok:#81b64c; --bad:#ca3431; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 "Figtree","Segoe UI",system-ui,sans-serif; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 40px 20px 60px; display:grid; gap:22px; }
+h1 { margin:0; font-size:32px; font-weight:800; letter-spacing:-.02em; }
+.sub { color:var(--muted); margin:4px 0 0; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; display:grid; gap:16px; }
+.row { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:14px; }
+label { display:grid; gap:6px; font-weight:600; font-size:14px; }
+label span { color:var(--muted); font-weight:500; font-size:12.5px; }
+input, select { font:600 15px inherit; font-family:inherit; background:var(--panel-2); color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:11px 12px; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.check { display:flex; align-items:center; gap:10px; font-weight:600; }
+.check input { width:18px; height:18px; }
+button.go { background:var(--accent); color:var(--on); border:0; border-radius:12px; padding:14px 22px; font:800 16px inherit; font-family:inherit; cursor:pointer; justify-self:start; }
+button.go:disabled { opacity:.5; cursor:default; }
+.bar { height:12px; border-radius:6px; background:var(--panel-2); overflow:hidden; }
+.bar i { display:block; height:100%; width:0; background:var(--ok); transition:width .4s; }
+.stage { font-weight:700; }
+pre { margin:0; background:#1e1d1a; border:1px solid var(--line); border-radius:10px; padding:12px; font:12.5px/1.5 ui-monospace,Consolas,monospace; color:var(--muted); max-height:240px; overflow:auto; white-space:pre-wrap; }
+a { color:var(--accent); font-weight:700; }
+.reports { display:grid; gap:8px; }
+.reports a { display:flex; justify-content:space-between; gap:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:11px 14px; text-decoration:none; color:var(--fg); }
+.reports a span { color:var(--muted); font-weight:500; }
+.rrow { display:grid; grid-template-columns:1fr auto; gap:8px; }
+.reports a.ux { justify-content:center; font-weight:700; white-space:nowrap; }
+.err { color:var(--bad); font-weight:700; }
+.note { color:var(--muted); font-size:13px; margin:0; }
+</style></head>
+<body><div class="wrap">
+  <div><h1>Chess Insights Builder</h1><p class="sub">Type any chess.com and/or Lichess username. Games are downloaded, every position is analysed with Stockfish on this computer, and the full Insights report opens when it's done.</p></div>
+  <div class="card">
+    <div class="row">
+      <label for="cc">chess.com username <span>Leave empty to skip</span><input id="cc" placeholder="e.g. abdh2005" autocomplete="off"></label>
+      <label for="li">Lichess username <span>Leave empty to skip</span><input id="li" placeholder="e.g. DrNykterstein" autocomplete="off"></label>
+    </div>
+    <div class="row">
+      <label for="preset">Engine depth <span>Deeper is more reliable and slower</span>
+        <select id="preset"><option value="fast">Fast · depth 12, borderline re-checks 0.3M nodes</option><option value="standard" selected>Standard · depth 14, re-checks 1M nodes</option><option value="deep">Deep · depth 14, re-checks 3M nodes (about 3x Standard)</option><option value="max">Max · depth 16, re-checks 8M nodes (overnight)</option><option value="custom">Custom…</option></select></label>
+      <label for="max">Games <span>Most recent games to include</span>
+        <select id="max"><option value="">All games</option><option value="2000">Last 2,000</option><option value="1000">Last 1,000</option><option value="500">Last 500</option><option value="200">Last 200</option></select></label>
+      <label for="since">Since <span>Optional start date</span><input id="since" type="date"></label>
+    </div>
+    <div class="row" id="customRow" hidden>
+      <label for="depth">Depth for every position <span>8–30</span><input id="depth" type="number" min="8" max="30" value="14"></label>
+      <label for="mnodes">Re-check size, million nodes <span>0.1–100</span><input id="mnodes" type="number" min="0.1" max="100" step="0.1" value="2"></label>
+    </div>
+    <p class="note" id="est"></p>
+    <label class="check" for="countries"><input id="countries" type="checkbox" checked> Look up opponents' countries (for the map; adds a few minutes on chess.com)</label>
+    <button class="go" id="go">Build report</button>
+    <p class="note">Stockfish runs on all but two of your CPU cores. Rebuilding an account reuses analysis already done at the same depth, so it only analyses new games.</p>
+  </div>
+  <div class="card" id="prog" hidden>
+    <div class="stage" id="stage">Starting…</div>
+    <div class="bar"><i id="fill"></i></div>
+    <div id="result"></div>
+    <pre id="log" aria-live="polite"></pre>
+  </div>
+  <div class="card" id="updCard">
+    <div><b>New games</b><p class="note">Played more since the last build? This downloads only the games played since then, analyses them with the same engine settings and refreshes the report. Nothing runs until you press it.</p></div>
+    <div class="row">
+      <label for="ucc">chess.com username<input id="ucc" autocomplete="off"></label>
+      <label for="uli">Lichess username<input id="uli" autocomplete="off"></label>
+    </div>
+    <button class="go" id="upd">Check for new games</button>
+  </div>
+  <div class="card"><b>Your reports</b><div class="reports" id="reports"><p class="note">None yet.</p></div></div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+function estimate() {
+  $('customRow').hidden = $('preset').value !== 'custom';
+  $('est').textContent = 'Pass 1 analyses every position; pass 2 re-searches only the borderline ones, where a move could change class. The progress bar shows a time estimate from your computer\'s measured speed once it starts.';
+}
+for (const id of ['preset']) $(id).addEventListener('input', estimate);
+async function loadReports() {
+  const r = await fetch('/api/reports').then((x) => x.json()).catch(() => []);
+  const box = $('reports'); box.replaceChildren();
+  if (!r.length) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'None yet.'; box.append(p); return; }
+  for (const x of r) {
+    const row = document.createElement('div'); row.className = 'rrow';
+    const a = document.createElement('a'); a.href = x.url; a.target = '_blank'; a.append(document.createTextNode(x.key)); const s = document.createElement('span'); s.textContent = 'built ' + x.built; a.append(s);
+    const u = document.createElement('a'); u.href = x.url + 'ux.html'; u.target = '_blank'; u.className = 'ux'; u.textContent = 'UX version';
+    row.append(a, u); box.append(row);
+  }
+}
+let pollT = null, lastState = null;
+async function poll() {
+  clearTimeout(pollT);
+  const s = await fetch('/api/status').then((x) => x.json()).catch(() => null); if (!s) { pollT = setTimeout(poll, 3000); return; }
+  if (s.state !== 'idle') $('prog').hidden = false;
+  $('stage').textContent = s.stage || ''; $('fill').style.width = Math.round((s.progress || 0) * 100) + '%';
+  const log = $('log'); const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 10; log.textContent = (s.log || []).join('\n'); if (atEnd) log.scrollTop = log.scrollHeight;
+  const res = $('result'); res.replaceChildren();
+  if (s.state === 'done' && s.report) { const a = document.createElement('a'); a.href = s.report; a.target = '_blank'; a.textContent = 'Open the report →'; const u = document.createElement('a'); u.href = s.report + 'ux.html'; u.target = '_blank'; u.textContent = 'UX version →'; u.style.marginLeft = '16px'; res.append(a, u); }
+  if (s.state === 'error') { const p = document.createElement('p'); p.className = 'err'; p.textContent = s.error; res.append(p); }
+  $('go').disabled = s.state === 'running'; $('upd').disabled = s.state === 'running';
+  if (s.state !== 'running' && lastState !== s.state) loadReports();
+  lastState = s.state;
+  pollT = setTimeout(poll, s.state === 'running' ? 1500 : 10000);
+}
+$('go').addEventListener('click', async () => {
+  const body = { chesscom: $('cc').value.trim(), lichess: $('li').value.trim(), preset: $('preset').value, depth: $('depth').value, mnodes: $('mnodes').value, max_games: $('max').value, since: $('since').value, countries: $('countries').checked };
+  if (!body.chesscom && !body.lichess) { $('cc').focus(); return; }
+  const r = await fetch('/api/build', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'Could not start'); return; }
+  $('prog').hidden = false; poll();
+});
+fetch('/api/auto').then((x) => x.json()).then((a) => { $('ucc').value = a.chesscom || ''; $('uli').value = a.lichess || ''; }).catch(() => {});
+$('upd').addEventListener('click', async () => {
+  const body = { chesscom: $('ucc').value.trim(), lichess: $('uli').value.trim() };
+  if (!body.chesscom && !body.lichess) { $('ucc').focus(); return; }
+  const r = await fetch('/api/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'Could not start'); return; }
+  $('prog').hidden = false; poll();
+});
+estimate(); poll(); loadReports();
+</script>
+</body></html>
