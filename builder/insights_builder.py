@@ -95,12 +95,12 @@ def install_engine():
         return path
     stage('Downloading Stockfish (official release)')
     rel = jget('https://api.github.com/repos/official-stockfish/Stockfish/releases/latest')
-    plat = 'windows' if os.name == 'nt' else ('macos' if sys.platform == 'darwin' else 'ubuntu')
+    plats = ['windows'] if os.name == 'nt' else (['macos'] if sys.platform == 'darwin' else ['linux', 'ubuntu'])  # Stockfish 19 names Linux builds 'linux', older ones 'ubuntu'
     arm = platform.machine().lower() in ('arm64', 'aarch64')
     prefs = (['arm64-universal', 'arm64', 'm1-apple-silicon', 'apple-silicon'] if arm else []) + ['x86-64-universal', 'universal', 'x86-64-avx2', 'x86-64-bmi2', 'x86-64-sse41-popcnt', 'x86-64']
     assets = rel.get('assets', [])
     for pref in prefs:
-        for a in assets:
+        for plat, a in ((pl, a) for pl in plats for a in assets):
             n = a['name']
             if plat in n and n.split(plat + '-')[-1].split('.')[0] == pref and (n.endswith('.zip') or n.endswith('.tar') or n.endswith('.tar.gz')):
                 log(f'Downloading {n} ({a["size"] // 1_000_000} MB) from the official Stockfish release {rel.get("tag_name")}')
