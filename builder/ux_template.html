@@ -1951,7 +1951,7 @@ const UPDATE_TASK = 'trig_016RVYxeKmn8gPJjVepS6dRU';
   if (location.port === '8765') return; // the laptop copy has its own "Check for new games" button
   if (/\.github\.io$/.test(location.hostname)) { // the GitHub Pages copy: the button opens the workflow page, where "Run workflow" updates now
     const user = location.hostname.split('.')[0], repo = location.pathname.split('/')[1] || user + '.github.io';
-    const a = h('a', { class: 'btn', id: 'webupd', href: `https://github.com/${user}/${repo}/actions/workflows/update.yml`, target: '_blank', rel: 'noopener', title: 'Opens GitHub: press "Run workflow" to fetch and analyse new games now. It also runs by itself every 3 hours.', style: 'margin-left:12px;padding:6px 12px;text-decoration:none' }, document.createTextNode('↻ Update'));
+    const a = h('a', { class: 'btn', id: 'webupd', href: `https://github.com/${user}/${repo}/actions/workflows/update.yml`, target: '_blank', rel: 'noopener', title: 'Opens GitHub: press "Run workflow" to fetch and analyse new games now. It also runs by itself every 30 minutes.', style: 'margin-left:12px;padding:6px 12px;text-decoration:none' }, document.createTextNode('↻ Update'));
     const sc = document.getElementById('scope'); if (sc) sc.after(a); return;
   }
   let mcp = null; try { mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null; } catch (e) { mcp = null; }

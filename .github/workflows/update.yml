@@ -2,7 +2,10 @@ name: Update Chess Insights
 
 on:
   schedule:
-    - cron: '17 */3 * * *'   # every 3 hours
+    # Every 30 minutes. GitHub delays or skips scheduled runs when it's busy (the old 3-hour schedule
+    # really ran every 6-11 hours), so asking often keeps updates close to real time.
+    # A run with no new games takes about a minute and skips the deploy.
+    - cron: '7,37 * * * *'
   workflow_dispatch:          # the "Run workflow" button
     inputs:
       force:
@@ -75,9 +78,11 @@ jobs:
           fi
           git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:data
 
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.build.outputs.rebuilt == 'true' || github.event_name != 'schedule'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - id: deploy
+        if: steps.build.outputs.rebuilt == 'true' || github.event_name != 'schedule'
         uses: actions/deploy-pages@v4
