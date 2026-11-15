@@ -645,6 +645,8 @@ def build(opts):
     shutil.copy(os.path.join(HERE, 'app_template.html'), os.path.join(rep, 'index.html'))
     if os.path.exists(os.path.join(HERE, 'ux_template.html')):  # the UX version, same data
         shutil.copy(os.path.join(HERE, 'ux_template.html'), os.path.join(rep, 'ux.html'))
+    if os.path.isdir(os.path.join(HERE, 'sf')):  # analysis board: chess.js + Stockfish 19 for the browser
+        shutil.copytree(os.path.join(HERE, 'sf'), os.path.join(rep, 'sf'), dirs_exist_ok=True)
     for f in os.listdir(rep):
         if f.startswith('abdh2005_'):
             os.replace(os.path.join(rep, f), os.path.join(rep, f.replace('abdh2005', key)))

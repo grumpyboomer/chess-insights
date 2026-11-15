@@ -1,7 +1,7 @@
 """Online update (GitHub Actions): restore the saved analysis, fetch only new games, analyse them, save, build the site.
 
 store/   = the `data` branch: engine_cache.json, sources.json, mapdata.json, app_data.json, detail.json
-_site/   = what GitHub Pages serves: index.html, ux.html, app_data.json, detail.json
+_site/   = what GitHub Pages serves: index.html, ux.html, app_data.json, detail.json, sf/ (analysis board engine)
 """
 import json, os, shutil, sys, time
 
@@ -40,7 +40,10 @@ def site():
     shutil.copy(os.path.join(B, 'app_template.html'), os.path.join(SITE, 'index.html'))
     shutil.copy(os.path.join(B, 'ux_template.html'), os.path.join(SITE, 'ux.html'))
     for f in ('app_data.json', 'detail.json'): shutil.copy(os.path.join(REP, f), os.path.join(SITE, f))
+    shutil.copytree(os.path.join(B, 'sf'), os.path.join(SITE, 'sf'))  # analysis board: chess.js + Stockfish 19 for the browser
     open(os.path.join(SITE, '.nojekyll'), 'w').close()
+    for root, _, files in os.walk(SITE):
+        for f in sorted(files): print('site:', os.path.relpath(os.path.join(root, f), SITE), os.path.getsize(os.path.join(root, f)))
 
 
 def main():
