@@ -567,6 +567,37 @@ table.kv td:last-child { text-align: right; overflow-wrap: anywhere; }
 .rv-coach { min-height: 96px; align-content: start; }
 @media (max-width: 1100px) { .rv-moves.mt { flex: none; max-height: 300px; } }
 
+/* ---- board column on tablets and phones: size from the space the card really has, not from the window ---- */
+@media (max-width: 1100px) {
+  .rv-left { width: 100%; max-width: 680px; justify-self: center; }
+  .rv-bw { grid-template-columns: 18px minmax(0, 1fr); gap: 8px; }
+  .rv-player, .rv-nav { padding-left: 26px; }
+}
+@media (max-width: 560px) {
+  .rv { padding: 8px; }
+  .rv-main { gap: 14px; }
+  .rv-left { gap: 6px; }
+  .rv-bw { grid-template-columns: 12px minmax(0, 1fr); gap: 6px; }
+  .rv-evbar span { display: none; }
+  /* the move explanation and the engine sit right under the board, the game details below them */
+  .rv-panel .rv-coach { order: -3; } .rv-panel .rv-mode { order: -4; } .rv-panel .eng { order: -2; }
+  .rv-player, .rv-nav { padding-left: 18px; }
+  .rv-player { font-size: 14px; gap: 6px; min-width: 0; }
+  .rv-player b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .rv-player .clock { font-size: 15px; min-width: 0; padding: 2px 8px; }
+  .rv-player .acc { font-size: 12px; padding: 1px 6px; }
+  .rv-nav { gap: 5px; }
+  .rv-nav .btn, .rv-nav .btn[data-k="flip"] { flex: 1 1 0; min-width: 0; margin-left: 0; padding: 9px 0; font-size: 15px; }
+  .rv-top h3 { font-size: 17px; }
+  .rv-top .note { font-size: 12.5px; }
+  .eng-h { padding: 8px 10px; gap: 8px; }
+  .eng-ev { font-size: 18px; min-width: 44px; }
+  .pv { font-size: 12.5px; padding: 2px 8px; min-height: 26px; }
+  .pv .evpill { min-width: 40px; font-size: 11.5px; padding: 1px 4px; }
+  .rv-coach { min-height: 0; }
+  .rv-acts .btn { flex: 1 1 auto; justify-content: center; }
+}
+
 /* ---- checkmate gallery ---- */
 .mate-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .mate-pills .btn { padding: 7px 12px; font-weight: 500; font-size: 13.5px; }
